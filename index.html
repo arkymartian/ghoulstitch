@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GhoulStitch</title>
+<link rel="icon" type="image/png" href="bloodthirst.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Segoe UI',sans-serif;color:#e8e0f0;min-height:100vh;
+  background:linear-gradient(rgba(0,0,0,0.62),rgba(0,0,0,0.62)),url('underdark.jpg');
+  background-size:cover;background-attachment:fixed;background-position:center;
+  display:flex;flex-direction:column;
+}
+header{
+  background:rgba(20,7,3,0.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(200,120,60,0.25);
+}
+.logo{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(200,120,60,0.5);flex-shrink:0}
+header h1{font-size:1.3rem;font-weight:600;color:#f0c890}
+header span{font-size:0.85rem;opacity:0.6}
+.drop-zone{
+  margin:16px;border:2px dashed rgba(200,120,60,0.5);border-radius:10px;padding:28px;
+  text-align:center;cursor:pointer;color:#c89060;
+  background:rgba(10,5,25,0.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:all .2s;
+}
+.drop-zone:hover,.drop-zone.drag{background:rgba(25,12,45,0.50);border-color:#c87840}
+.drop-zone.loaded{border-color:rgba(80,190,120,0.6);color:#80d8a0;background:rgba(5,20,12,0.40)}
+.drop-zone p{font-size:0.95rem}
+.drop-zone .hint{font-size:0.78rem;color:rgba(255,255,255,0.35);margin-top:4px}
+#dzPreview{display:flex;flex-direction:column;align-items:center;gap:8px}
+#dzThumb{max-height:90px;max-width:100%;border-radius:6px;object-fit:contain;box-shadow:0 2px 10px rgba(0,0,0,0.5)}
+#dzName{font-size:0.85rem;color:#80d8a0}
+input[type=file]{display:none}
+.controls{
+  background:rgba(10,5,25,0.40);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.08);
+  padding:12px 16px;display:flex;
+}
+.controls-main{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end}
+.sliders-group{display:flex;flex-direction:column;gap:4px}
+.sliders-row{display:flex;gap:20px;align-items:flex-end}
+.controls-status{text-align:center;min-height:1.1em}
+.ctrl{display:flex;flex-direction:column;gap:4px}
+.ctrl label{font-size:0.78rem;color:#b8a8d8;font-weight:500}
+.ctrl input[type=range]{width:130px;accent-color:#c87840}
+.ctrl-row{display:flex;align-items:center;gap:6px;font-size:0.88rem;color:#d0c8e8}
+.ctrl-row input[type=checkbox]{accent-color:#c87840;width:15px;height:15px}
+.val{font-weight:700;color:#e8a060;min-width:28px;display:inline-block}
+.btn{background:rgba(120,45,12,0.70);color:#ffe8cc;border:1px solid rgba(200,120,60,0.4);padding:9px 18px;border-radius:6px;cursor:pointer;font-size:0.88rem;font-weight:600;transition:all .15s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.btn:hover{background:rgba(160,65,20,0.80)}
+.btn:disabled{background:rgba(60,50,70,0.35);color:rgba(255,255,255,0.3);border-color:transparent;cursor:not-allowed}
+.btn.secondary{background:rgba(20,80,45,0.65);border-color:rgba(80,190,120,0.35);color:#b0f0c8}
+.btn.secondary:hover{background:rgba(28,100,58,0.78)}
+.btn.save{background:rgba(30,50,100,0.65);border-color:rgba(100,140,255,0.35);color:#b0c8ff}
+.btn.save:hover{background:rgba(40,65,130,0.78)}
+.btn.load{background:rgba(70,30,90,0.65);border-color:rgba(180,100,255,0.35);color:#d8b0ff}
+.btn.load:hover{background:rgba(90,40,115,0.78)}
+.btn.reset{background:rgba(110,20,20,0.65);border-color:rgba(255,80,80,0.3);color:#ffb0b0}
+.btn.reset:hover{background:rgba(148,28,28,0.80)}
+#saveBtn:not(:disabled){background:rgba(110,40,150,0.80);border-color:rgba(210,130,255,0.7);color:#edd8ff;box-shadow:0 0 14px rgba(180,80,255,0.45)}
+#saveBtn:not(:disabled):hover{background:rgba(135,55,180,0.88);box-shadow:0 0 20px rgba(180,80,255,0.6)}
+.status{font-size:0.8rem;color:rgba(200,185,220,0.55);align-self:center}
+.zoom-bar{display:flex;align-items:center;gap:8px;padding:7px 16px;justify-content:center;background:rgba(10,5,25,0.40);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.zoom-btn{background:rgba(30,20,55,0.70);border:1px solid rgba(255,255,255,0.18);color:#d0c8f0;width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:1.15rem;font-weight:700;transition:background .15s;line-height:32px;text-align:center}
+.zoom-btn:hover{background:rgba(60,35,95,0.90)}
+.zoom-fit-btn{width:auto;padding:0 14px;font-size:0.8rem;font-weight:600;line-height:32px}
+.zoom-label{font-size:0.82rem;color:rgba(200,185,220,0.7);min-width:48px;text-align:center}
+.zoom-hint{font-size:0.72rem;color:rgba(180,165,200,0.4);margin-left:8px}
+.preview-wrap{padding:16px;overflow:auto;min-height:0;background:transparent;display:flex;justify-content:center;align-items:flex-start}
+#canvasWrap{position:relative;flex-shrink:0}
+.preview-wrap canvas{display:block;image-rendering:pixelated}
+.legend{padding:16px;display:flex;flex-direction:column;align-items:center}
+.legend h3{margin-bottom:10px;color:#e8a060;font-size:1rem}
+#placeholder{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px;font-family:'Cinzel Decorative',serif;font-size:1.45rem;color:rgba(210,190,255,0.45);letter-spacing:0.06em;text-align:center;pointer-events:none}
+footer{margin-top:auto;text-align:center;padding:18px;font-size:0.78rem;color:rgba(200,185,220,0.55);letter-spacing:0.04em;background:transparent}
+table{
+  border-collapse:collapse;font-size:0.83rem;
+  background:rgba(10,5,28,0.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-radius:6px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.4);
+  border:1px solid rgba(255,255,255,0.08);
+}
+th,td{border:1px solid rgba(255,255,255,0.07);padding:5px 10px;text-align:left;color:#ddd8f0}
+th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
+.swatch{width:22px;height:18px;border:1px solid rgba(255,255,255,0.25);display:inline-block;vertical-align:middle;border-radius:2px}
+.sym{font-family:monospace;font-size:1.05rem;font-weight:700;color:#f0d090}
+</style>
+</head>
+<body>
+<header>
+  <img src="ghoul.png" class="logo" alt="">
+  <h1>GhoulStitch<sup style="font-size:0.45em;vertical-align:super;opacity:0.6;letter-spacing:0">™</sup></h1>
+  <span>Upload an image → adjust settings → generate → print</span>
+</header>
+
+<div class="drop-zone" id="dropZone">
+  <div id="dzPrompt">
+    <p>Drop an image here or click to upload</p>
+    <p class="hint">JPG, PNG, GIF, WebP supported</p>
+  </div>
+  <div id="dzPreview" style="display:none">
+    <img id="dzThumb" alt="">
+    <p id="dzName"></p>
+  </div>
+  <input type="file" id="fileInput" accept="image/*">
+</div>
+
+<div class="controls">
+  <div class="controls-main">
+    <div class="sliders-group">
+      <div class="controls-status"><span class="status" id="status"></span></div>
+      <div class="sliders-row">
+        <div class="ctrl">
+          <label>Width (stitches): <span class="val" id="widthVal">60</span></label>
+          <input type="range" id="widthSlider" min="10" max="250" value="60">
+        </div>
+        <div class="ctrl">
+          <label>Number of colors: <span class="val" id="colorVal">16</span></label>
+          <input type="range" id="colorSlider" min="2" max="40" value="16">
+        </div>
+        <div class="ctrl">
+          <label>Preview zoom: <span class="val" id="zoomVal">10</span>px/stitch</label>
+          <input type="range" id="zoomSlider" min="4" max="20" value="10">
+        </div>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label style="margin-bottom:6px">Options</label>
+      <label class="ctrl-row"><input type="checkbox" id="dmcCheck" checked> Snap to DMC thread colors</label>
+      <label class="ctrl-row"><input type="checkbox" id="symbolCheck" checked> Show symbols in preview</label>
+    </div>
+    <button class="btn" id="generateBtn" disabled>Generate Pattern</button>
+    <button class="btn secondary" id="pdfBtn" disabled>Print PDF</button>
+    <button class="btn load" id="saveBtn" disabled>Save Pattern</button>
+    <button class="btn load" id="loadBtn">Load Pattern</button>
+    <button class="btn reset" id="resetBtn">Reset</button>
+    <input type="file" id="loadInput" accept=".gstitch">
+  </div>
+</div>
+
+<div id="placeholder">Upload an image or load a pattern to get started.</div>
+
+<div class="zoom-bar" id="zoomBar" style="display:none">
+  <button class="zoom-btn" id="zoomOut" title="Zoom out">−</button>
+  <span class="zoom-label" id="zoomLabel">100%</span>
+  <button class="zoom-btn" id="zoomIn" title="Zoom in">+</button>
+  <button class="zoom-btn zoom-fit-btn" id="zoomFit">Fit</button>
+  <span class="zoom-hint">or Shift + scroll over pattern</span>
+</div>
+
+<div class="preview-wrap" id="previewWrap">
+  <div id="canvasWrap">
+    <canvas id="patternCanvas"></canvas>
+  </div>
+</div>
+
+<div class="legend" id="legendArea" style="display:none">
+  <h3>Color Legend</h3>
+  <table>
+    <thead><tr><th>Sym</th><th>Swatch</th><th>DMC #</th><th>Name</th><th>Stitches</th></tr></thead>
+    <tbody id="legendBody"></tbody>
+  </table>
+</div>
+
+<footer>Made with help from Claude AI &nbsp;|&nbsp; House Hlaalu 2026</footer>
+
+<script>
+// ===========================================================
+// DMC FLOSS COLOR TABLE  [code, name, r, g, b]
+// ===========================================================
+const DMC = [
+  ['blanc','White',255,255,255],['Ecru','Ecru',240,234,218],['310','Black',0,0,0],
+  ['150','Ult Dk Dusty Rose',171,26,61],['152','Med Lt Shell Pink',225,163,147],
+  ['153','Vry Lt Violet',221,193,218],['154','Vry Dk Grape',72,35,67],
+  ['155','Med Dk Blue Violet',143,141,190],['158','Med Dk Cornflower Bl',68,89,131],
+  ['159','Lt Gray Blue',182,196,217],['161','Gray Blue',104,119,163],
+  ['163','Med Celadon Green',94,151,118],['164','Lt Forest Green',162,197,159],
+  ['165','Vry Lt Moss Green',226,238,170],['166','Med Lt Moss Green',185,200,88],
+  ['168','Vry Lt Pewter',208,208,208],['169','Lt Pewter',168,168,168],
+  ['208','Vry Dk Lavender',128,80,141],['209','Dk Lavender',168,118,179],
+  ['210','Med Lavender',201,161,206],['211','Lt Lavender',225,205,228],
+  ['221','Vry Dk Shell Pink',152,66,66],['223','Lt Shell Pink',196,128,120],
+  ['224','Vry Lt Shell Pink',228,181,168],['225','Ult Vry Lt Shell Pink',246,224,215],
+  ['300','Vry Dk Mahogany',122,52,0],['301','Med Mahogany',186,98,44],
+  ['304','Med Christmas Red',176,30,45],['307','Lemon',253,239,107],
+  ['309','Dk Rose',188,55,75],['311','Med Navy Blue',25,68,110],
+  ['312','Lt Navy Blue',52,99,149],['315','Med Dk Antique Mauve',137,83,97],
+  ['316','Med Antique Mauve',179,122,138],['317','Pewter Gray',138,132,136],
+  ['318','Lt Steel Gray',193,192,196],['319','Vry Dk Pistachio Grn',54,101,63],
+  ['320','Med Pistachio Green',99,143,101],['321','Red',199,49,58],
+  ['322','Dk Baby Blue',97,146,190],['326','Vry Dk Rose',185,58,78],
+  ['327','Dk Violet',105,52,117],['333','Vry Dk Blue Violet',96,82,150],
+  ['334','Med Baby Blue',120,165,201],['335','Rose',231,82,112],
+  ['336','Navy Blue',27,60,110],['340','Med Blue Violet',164,155,203],
+  ['341','Lt Blue Violet',175,182,219],['347','Vry Dk Salmon',196,56,50],
+  ['349','Dk Coral',210,57,47],['350','Med Coral',226,88,75],
+  ['351','Coral',237,120,106],['352','Lt Coral',252,161,147],
+  ['353','Peach',255,191,173],['355','Dk Terra Cotta',162,77,51],
+  ['356','Med Terra Cotta',190,107,80],['367','Dk Pistachio Green',90,125,90],
+  ['368','Lt Pistachio Green',152,192,148],['369','Vry Lt Pistachio Grn',204,229,199],
+  ['400','Dk Mahogany',152,68,28],['402','Vry Lt Mahogany',252,175,117],
+  ['407','Dk Desert Sand',188,130,97],['413','Dk Pewter Gray',94,90,96],
+  ['414','Dk Steel Gray',156,154,158],['415','Pearl Gray',217,217,217],
+  ['422','Lt Hazel Nut Brown',200,162,113],['433','Med Brown',140,77,33],
+  ['434','Lt Brown',172,103,51],['435','Vry Lt Brown',193,128,74],
+  ['436','Tan',216,156,92],['437','Lt Tan',231,184,126],
+  ['444','Dk Lemon',252,221,8],['445','Lt Lemon',255,246,140],
+  ['451','Dk Shell Gray',154,141,136],['452','Med Shell Gray',188,178,173],
+  ['453','Lt Shell Gray',212,204,200],['469','Avocado Green',107,124,58],
+  ['470','Lt Avocado Green',133,162,72],['471','Vry Lt Avocado Green',164,188,97],
+  ['472','Ult Lt Avocado Green',212,228,143],['498','Dk Christmas Red',165,21,34],
+  ['500','Vry Dk Blue Green',27,79,62],['501','Dk Blue Green',61,108,88],
+  ['502','Blue Green',92,143,120],['503','Med Blue Green',138,178,160],
+  ['504','Vry Lt Blue Green',186,214,202],['517','Dk Wedgwood',60,121,155],
+  ['518','Lt Wedgwood',91,153,179],['519','Sky Blue',133,183,208],
+  ['520','Dk Fern Green',95,112,74],['522','Fern Green',143,156,122],
+  ['524','Vry Lt Fern Green',201,208,181],['535','Vry Lt Ash Gray',102,101,106],
+  ['543','Ult Vry Lt Beige Brn',238,220,196],['550','Vry Dk Violet',91,38,109],
+  ['552','Med Violet',138,71,143],['553','Violet',169,105,162],
+  ['554','Lt Violet',210,171,205],['561','Vry Dk Jade',53,108,83],
+  ['562','Med Jade',85,143,107],['563','Lt Jade',136,181,152],
+  ['564','Vry Lt Jade',176,210,189],['580','Dk Moss Green',97,116,39],
+  ['597','Turquoise',83,167,179],['598','Lt Turquoise',143,198,206],
+  ['600','Vry Dk Cranberry',207,48,91],['602','Med Cranberry',228,85,126],
+  ['603','Cranberry',255,134,167],['604','Lt Cranberry',255,180,198],
+  ['606','Bright Orange-Red',238,50,27],['608','Bright Orange',255,111,42],
+  ['610','Dk Drab Brown',145,115,72],['612','Lt Drab Brown',203,177,133],
+  ['613','Vry Lt Drab Brown',224,204,169],['632','Ult Vry Dk Desert Sand',153,91,54],
+  ['640','Vry Dk Beige Gray',143,136,119],['642','Dk Beige Gray',170,162,144],
+  ['644','Med Beige Gray',210,205,190],['645','Vry Dk Beaver Gray',118,112,107],
+  ['646','Dk Beaver Gray',151,144,138],['648','Lt Beaver Gray',202,197,192],
+  ['666','Bright Christmas Red',210,32,47],['676','Lt Old Gold',222,194,124],
+  ['677','Vry Lt Old Gold',238,221,172],['680','Dk Old Gold',186,148,60],
+  ['699','Christmas Green',23,95,36],['700','Bright Christmas Green',35,114,48],
+  ['701','Lt Christmas Green',75,148,64],['702','Kelly Green',94,166,65],
+  ['703','Chartreuse',131,182,77],['704','Bright Chartreuse',162,202,86],
+  ['712','Cream',252,244,226],['718','Plum',157,41,109],
+  ['720','Dk Orange Spice',234,113,37],['721','Med Orange Spice',245,148,76],
+  ['722','Lt Orange Spice',250,177,115],['725','Topaz',254,211,71],
+  ['726','Lt Topaz',255,222,80],['727','Vry Lt Topaz',255,237,142],
+  ['729','Med Old Gold',204,167,65],['730','Vry Dk Olive Green',121,115,36],
+  ['732','Olive Green',152,144,60],['734','Lt Olive Green',199,192,110],
+  ['738','Vry Lt Tan',233,195,139],['739','Ult Vry Lt Tan',245,223,183],
+  ['740','Tangerine',255,147,21],['741','Med Tangerine',255,168,49],
+  ['742','Lt Tangerine',255,196,87],['743','Med Yellow',255,218,91],
+  ['744','Yellow',255,233,118],['745','Lt Pale Yellow',255,244,181],
+  ['746','Off White',252,249,228],['747','Vry Lt Sky Blue',210,242,248],
+  ['754','Lt Peach',249,200,180],['758','Vry Lt Terra Cotta',236,179,158],
+  ['760','Salmon',244,154,142],['761','Lt Salmon',255,191,181],
+  ['762','Vry Lt Pearl Gray',232,232,232],['772','Vry Lt Yellow Green',214,232,191],
+  ['775','Vry Lt Baby Blue',206,228,245],['776','Med Pink',255,162,175],
+  ['780','Ult Vry Dk Topaz',150,101,20],['782','Dk Topaz',190,143,50],
+  ['783','Med Topaz',212,165,67],['791','Vry Dk Cornflower Blue',68,74,125],
+  ['792','Dk Cornflower Blue',90,104,158],['793','Med Cornflower Blue',120,136,183],
+  ['794','Lt Cornflower Blue',161,176,214],['796','Dk Royal Blue',30,76,138],
+  ['798','Dk Delft Blue',72,114,165],['799','Med Delft Blue',102,145,190],
+  ['800','Pale Delft Blue',170,197,224],['801','Dk Coffee Brown',110,63,24],
+  ['806','Dk Peacock Blue',49,146,165],['807','Peacock Blue',81,174,192],
+  ['809','Delft Blue',130,162,200],['813','Lt Blue',153,191,221],
+  ['814','Dk Garnet',144,24,42],['815','Med Garnet',162,33,50],
+  ['816','Garnet',176,44,54],['817','Vry Dk Coral Red',201,38,35],
+  ['818','Baby Pink',255,215,216],['819','Lt Baby Pink',255,232,234],
+  ['820','Vry Dk Royal Blue',23,58,119],['822','Lt Beige Gray',229,221,202],
+  ['823','Dk Navy Blue',35,47,100],['824','Vry Dk Blue',51,100,143],
+  ['826','Med Blue',98,158,199],['827','Vry Lt Blue',176,213,234],
+  ['829','Vry Dk Golden Olive',136,111,53],['831','Med Golden Olive',172,149,85],
+  ['833','Lt Golden Olive',217,193,116],['838','Vry Dk Beige Brown',98,76,52],
+  ['839','Dk Beige Brown',128,100,71],['840','Med Beige Brown',158,127,97],
+  ['841','Lt Beige Brown',189,162,132],['842','Vry Lt Beige Brown',218,199,174],
+  ['844','Ult Dk Beaver Gray',88,84,82],['868','Vry Dk Hazel Nut Brn',148,87,42],
+  ['890','Ult Dk Pistachio Grn',22,72,44],['891','Dk Carnation',255,95,105],
+  ['892','Med Carnation',255,120,125],['893','Lt Carnation',255,155,158],
+  ['894','Vry Lt Carnation',255,186,188],['895','Vry Dk Hunter Green',36,79,48],
+  ['898','Vry Dk Coffee Brown',80,44,16],['899','Med Rose',252,128,145],
+  ['900','Dk Burnt Orange',213,66,0],['902','Vry Dk Garnet',125,31,47],
+  ['904','Vry Dk Parrot Green',73,120,50],['906','Med Parrot Green',118,177,70],
+  ['907','Lt Parrot Green',157,206,94],['909','Vry Dk Emerald Green',25,110,65],
+  ['911','Med Emerald Green',38,151,91],['913','Med Nile Green',118,192,148],
+  ['915','Dk Plum',143,22,88],['917','Med Plum',175,34,108],
+  ['918','Dk Red Copper',155,62,22],['919','Red Copper',182,81,33],
+  ['920','Med Copper',196,104,52],['921','Copper',219,130,70],
+  ['922','Lt Copper',237,159,101],['924','Vry Dk Gray Green',93,117,112],
+  ['926','Med Gray Green',143,168,163],['927','Lt Gray Green',181,198,194],
+  ['928','Vry Lt Gray Green',214,224,221],['930','Dk Antique Blue',89,112,133],
+  ['931','Med Antique Blue',118,145,167],['932','Lt Antique Blue',163,182,200],
+  ['934','Black Avocado Green',57,70,35],['936','Vry Dk Avocado Green',85,103,51],
+  ['938','Ult Dk Coffee Brown',58,32,12],['939','Vry Dk Navy Blue',19,38,80],
+  ['943','Med Aquamarine',53,169,148],['945','Tawny',255,205,163],
+  ['947','Burnt Orange',255,132,38],['948','Vry Lt Peach',255,227,207],
+  ['950','Lt Desert Sand',234,198,172],['954','Nile Green',117,191,152],
+  ['956','Geranium',255,106,113],['958','Dk Sea Foam Green',47,176,160],
+  ['959','Med Sea Foam Green',84,195,178],['961','Dk Dusty Rose',212,107,118],
+  ['962','Med Dusty Rose',235,137,147],['963','Ult Vry Lt Dusty Rose',255,210,214],
+  ['964','Lt Sea Foam Green',162,220,213],['966','Med Baby Green',160,206,171],
+  ['970','Lt Pumpkin',255,154,50],['972','Deep Canary',255,185,0],
+  ['975','Dk Golden Brown',146,83,22],['976','Med Golden Brown',214,147,68],
+  ['977','Lt Golden Brown',234,175,99],['986','Vry Dk Forest Green',58,90,58],
+  ['987','Dk Forest Green',80,120,74],['988','Med Forest Green',104,148,93],
+  ['989','Forest Green',130,172,114],['991','Dk Aquamarine',53,127,107],
+  ['993','Lt Aquamarine',120,185,162],['995','Dk Electric Blue',37,140,188],
+  ['996','Med Electric Blue',60,177,228],['3011','Dk Khaki Green',133,134,80],
+  ['3013','Lt Khaki Green',193,193,136],['3021','Vry Dk Brown Gray',99,90,76],
+  ['3022','Med Brown Gray',155,151,134],['3024','Vry Lt Brown Gray',227,222,211],
+  ['3031','Vry Dk Mocha Brown',96,74,45],['3033','Vry Lt Mocha Brown',220,207,188],
+  ['3041','Med Antique Violet',159,131,152],['3042','Lt Antique Violet',194,173,191],
+  ['3045','Dk Yellow Beige',200,166,106],['3047','Lt Yellow Beige',240,221,181],
+  ['3051','Dk Green Gray',89,102,73],['3052','Med Green Gray',122,136,100],
+  ['3064','Desert Sand',204,155,117],['3072','Vry Lt Beaver Gray',220,220,218],
+  ['3078','Vry Lt Golden Yellow',253,247,182],['3325','Lt Baby Blue',180,210,234],
+  ['3326','Lt Rose',255,172,179],['3328','Dk Salmon',225,113,104],
+  ['3340','Med Apricot',255,134,93],['3341','Apricot',255,169,130],
+  ['3345','Dk Hunter Green',50,100,52],['3346','Hunter Green',74,125,72],
+  ['3347','Med Yellow Green',113,157,93],['3348','Lt Yellow Green',188,218,167],
+  ['3350','Ult Dk Dusty Rose',185,69,92],['3354','Lt Dusty Rose',230,164,169],
+  ['3362','Dk Pine Green',80,103,76],['3363','Med Pine Green',101,127,94],
+  ['3364','Pine Green',133,162,120],['3371','Black Brown',38,22,12],
+  ['3607','Lt Plum',213,81,142],['3609','Ult Lt Plum',249,189,219],
+  ['3685','Vry Dk Mauve',145,36,60],['3687','Mauve',197,101,118],
+  ['3688','Med Mauve',232,165,173],['3689','Lt Mauve',252,198,202],
+  ['3705','Dk Melon',254,96,106],['3708','Lt Melon',255,192,194],
+  ['3712','Med Salmon',240,138,128],['3716','Vry Lt Dusty Rose',255,180,188],
+  ['3721','Dk Shell Pink',170,83,88],['3726','Dk Antique Mauve',156,100,113],
+  ['3731','Vry Dk Dusty Rose',214,100,117],['3733','Dusty Rose',237,144,156],
+  ['3740','Dk Antique Violet',117,94,112],['3746','Dk Blue Violet',130,120,174],
+  ['3747','Vry Lt Blue Violet',203,208,232],['3750','Vry Dk Antique Blue',60,81,105],
+  ['3752','Vry Lt Antique Blue',196,208,221],['3755','Baby Blue',138,175,210],
+  ['3760','Med Wedgwood',74,135,163],['3761','Lt Sky Blue',165,207,228],
+  ['3765','Vry Dk Peacock Blue',42,131,147],['3768','Dk Gray Green',106,131,127],
+  ['3770','Vry Lt Tawny',255,231,208],['3772','Vry Dk Desert Sand',168,104,68],
+  ['3776','Lt Mahogany',218,130,72],['3778','Lt Terra Cotta',217,142,119],
+  ['3781','Dk Mocha Brown',122,96,68],['3787','Dk Brown Gray',113,107,94],
+  ['3799','Vry Dk Pewter Gray',78,75,79],['3801','Vry Dk Melon',218,51,63],
+  ['3803','Dk Mauve',175,53,87],['3804','Dk Cyclamen Pink',228,40,109],
+  ['3806','Lt Cyclamen Pink',253,142,180],['3807','Cornflower Blue',92,100,155],
+  ['3808','Ult Vry Dk Turquoise',56,122,130],['3810','Dk Turquoise',85,165,172],
+  ['3811','Vry Lt Turquoise',177,225,228],['3812','Vry Dk Sea Foam Green',43,156,140],
+  ['3813','Lt Blue Green',170,211,196],['3815','Dk Celadon Green',70,128,103],
+  ['3817','Lt Celadon Green',150,192,172],['3818','Ult Vry Dk Emerald Grn',0,89,54],
+  ['3819','Lt Moss Green',218,232,113],['3820','Dk Straw',227,184,76],
+  ['3821','Straw',246,213,110],['3822','Lt Straw',252,230,154],
+  ['3823','Ult Pale Yellow',255,253,222],['3824','Lt Apricot',255,197,163],
+  ['3825','Pale Pumpkin',255,185,115],['3826','Golden Brown',185,130,60],
+  ['3827','Pale Golden Brown',252,187,120],['3828','Hazel Nut Brown',182,137,80],
+  ['3829','Vry Dk Old Gold',164,131,28],['3830','Terra Cotta',187,90,68],
+  ['3831','Dk Raspberry',183,43,65],['3833','Lt Raspberry',243,139,152],
+  ['3834','Dk Grape',113,56,104],['3835','Med Grape',151,89,142],
+  ['3836','Lt Grape',192,143,183],['3837','Ult Dk Lavender',108,62,122],
+  ['3838','Dk Lavender Blue',92,109,157],['3839','Med Lavender Blue',122,140,182],
+  ['3840','Lt Lavender Blue',173,186,218],['3842','Dk Wedgwood',52,107,142],
+  ['3843','Electric Blue',28,164,213],['3844','Dk Bright Turquoise',22,176,189],
+  ['3846','Lt Bright Turquoise',0,220,228],['3847','Dk Teal Green',50,131,119],
+  ['3849','Lt Teal Green',90,178,162],['3852','Vry Dk Straw',199,156,52],
+  ['3853','Dk Autumn Gold',248,155,52],['3855','Lt Autumn Gold',254,215,149],
+  ['3857','Dk Rosewood',110,44,30],['3858','Med Rosewood',168,84,66],
+  ['3860','Cocoa',119,89,82],['3862','Dk Mocha Beige',142,114,83],
+  ['3864','Lt Mocha Beige',210,188,161],['3865','Winter White',245,245,243],
+  ['3866','Ult Vry Lt Mocha Brn',246,240,230],
+];
+
+// ===========================================================
+// SYMBOLS
+// ===========================================================
+const SYMBOLS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+*#@%!'.split('');
+
+// ===========================================================
+// COLOR UTILITIES
+// ===========================================================
+function nearestDMC(r, g, b) {
+  let best = DMC[0], bestDist = Infinity;
+  for (const c of DMC) {
+    const d = (r-c[2])**2 + (g-c[3])**2 + (b-c[4])**2;
+    if (d < bestDist) { bestDist = d; best = c; }
+  }
+  return best;
+}
+
+function nearestPaletteIdx(r, g, b, palette) {
+  let best = 0, bestDist = Infinity;
+  for (let i = 0; i < palette.length; i++) {
+    const d = (r-palette[i].r)**2 + (g-palette[i].g)**2 + (b-palette[i].b)**2;
+    if (d < bestDist) { bestDist = d; best = i; }
+  }
+  return best;
+}
+
+// ===========================================================
+// MEDIAN-CUT QUANTIZER
+// ===========================================================
+function medianCutBuckets(pixels, numColors) {
+  // Priority: always split the bucket with the largest channel range
+  let buckets = [pixels.slice()];
+
+  while (buckets.length < numColors) {
+    let bestIdx = -1, bestRange = -1;
+    buckets.forEach((b, i) => {
+      if (b.length < 2) return;
+      let rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+      for (const p of b) {
+        if(p[0]<rMin)rMin=p[0]; if(p[0]>rMax)rMax=p[0];
+        if(p[1]<gMin)gMin=p[1]; if(p[1]>gMax)gMax=p[1];
+        if(p[2]<bMin)bMin=p[2]; if(p[2]>bMax)bMax=p[2];
+      }
+      const range = Math.max(rMax-rMin, gMax-gMin, bMax-bMin);
+      if (range > bestRange) { bestRange = range; bestIdx = i; }
+    });
+    if (bestIdx === -1 || bestRange === 0) break;
+
+    const bucket = buckets[bestIdx];
+    let rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+    for (const p of bucket) {
+      if(p[0]<rMin)rMin=p[0]; if(p[0]>rMax)rMax=p[0];
+      if(p[1]<gMin)gMin=p[1]; if(p[1]>gMax)gMax=p[1];
+      if(p[2]<bMin)bMin=p[2]; if(p[2]>bMax)bMax=p[2];
+    }
+    const ch = (rMax-rMin >= gMax-gMin && rMax-rMin >= bMax-bMin) ? 0
+             : (gMax-gMin >= bMax-bMin) ? 1 : 2;
+    bucket.sort((a, z) => a[ch] - z[ch]);
+    const mid = Math.floor(bucket.length / 2);
+    buckets.splice(bestIdx, 1, bucket.slice(0, mid), bucket.slice(mid));
+  }
+
+  return buckets.map(b => {
+    if (!b.length) return { r:128, g:128, b:128 };
+    let r=0, g=0, bl=0;
+    for (const p of b) { r+=p[0]; g+=p[1]; bl+=p[2]; }
+    return { r: Math.round(r/b.length), g: Math.round(g/b.length), b: Math.round(bl/b.length) };
+  });
+}
+
+function buildPalette(imageData, numColors, useDMC) {
+  const data = imageData.data;
+  const pixels = [];
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i+3] < 128) continue;
+    pixels.push([data[i], data[i+1], data[i+2]]);
+  }
+  // Subsample to keep quantizer fast
+  const step = Math.max(1, Math.floor(pixels.length / 15000));
+  const sample = pixels.filter((_, i) => i % step === 0);
+
+  let palette = medianCutBuckets(sample, numColors);
+
+  if (useDMC) {
+    palette = palette.map(c => {
+      const dmc = nearestDMC(c.r, c.g, c.b);
+      return { r: dmc[2], g: dmc[3], b: dmc[4], dmc };
+    });
+    // Deduplicate by DMC code
+    const seen = new Set();
+    palette = palette.filter(c => {
+      const k = c.dmc[0];
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+
+  return palette;
+}
+
+// ===========================================================
+// STATE
+// ===========================================================
+let srcImage = null;
+let currentPattern = null;
+const offscreen = document.createElement('canvas');
+const offCtx = offscreen.getContext('2d');
+
+// ===========================================================
+// UI
+// ===========================================================
+const dropZone    = document.getElementById('dropZone');
+const fileInput   = document.getElementById('fileInput');
+const widthSlider = document.getElementById('widthSlider');
+const widthVal    = document.getElementById('widthVal');
+const colorSlider = document.getElementById('colorSlider');
+const colorVal    = document.getElementById('colorVal');
+const zoomSlider  = document.getElementById('zoomSlider');
+const zoomVal     = document.getElementById('zoomVal');
+const dmcCheck    = document.getElementById('dmcCheck');
+const symbolCheck = document.getElementById('symbolCheck');
+const generateBtn = document.getElementById('generateBtn');
+const pdfBtn      = document.getElementById('pdfBtn');
+const canvas      = document.getElementById('patternCanvas');
+const ctx         = canvas.getContext('2d');
+const statusEl    = document.getElementById('status');
+const legendArea  = document.getElementById('legendArea');
+const legendBody  = document.getElementById('legendBody');
+
+widthSlider.addEventListener('input', () => widthVal.textContent = widthSlider.value);
+colorSlider.addEventListener('input', () => colorVal.textContent = colorSlider.value);
+zoomSlider.addEventListener('input', () => {
+  zoomVal.textContent = zoomSlider.value;
+  if (currentPattern) renderPreview();
+});
+symbolCheck.addEventListener('change', () => { if (currentPattern) renderPreview(); });
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      srcImage = img;
+      document.getElementById('dzPrompt').style.display = 'none';
+      document.getElementById('dzThumb').src = e.target.result;
+      document.getElementById('dzName').textContent = file.name;
+      document.getElementById('dzPreview').style.display = 'flex';
+      dropZone.classList.add('loaded');
+      generateBtn.disabled = false;
+      document.getElementById('placeholder').style.display = 'none';
+      statusEl.textContent = 'Image loaded — click Generate Pattern.';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+generateBtn.addEventListener('click', () => {
+  if (!srcImage) return;
+  generateBtn.disabled = true;
+  statusEl.textContent = 'Quantizing colors…';
+  document.getElementById('dzPreview').style.display = 'none';
+  document.getElementById('dzThumb').src = '';
+  document.getElementById('dzName').textContent = '';
+  document.getElementById('dzPrompt').style.display = '';
+  dropZone.classList.remove('loaded');
+  setTimeout(doGenerate, 20);
+});
+
+function doGenerate() {
+  const sw = parseInt(widthSlider.value);
+  const sh = Math.round(sw * srcImage.height / srcImage.width);
+  const nc = parseInt(colorSlider.value);
+  const useDMC = dmcCheck.checked;
+
+  offscreen.width = sw; offscreen.height = sh;
+  offCtx.fillStyle = '#fff';
+  offCtx.fillRect(0, 0, sw, sh);
+  offCtx.drawImage(srcImage, 0, 0, sw, sh);
+  const imgData = offCtx.getImageData(0, 0, sw, sh);
+
+  const palette = buildPalette(imgData, nc, useDMC);
+  palette.forEach((c, i) => { c.symbol = SYMBOLS[i] || '?'; c.count = 0; });
+
+  const data = imgData.data;
+  const grid = [];
+  for (let y = 0; y < sh; y++) {
+    const row = [];
+    for (let x = 0; x < sw; x++) {
+      const i = (y * sw + x) * 4;
+      const ci = nearestPaletteIdx(data[i], data[i+1], data[i+2], palette);
+      palette[ci].count++;
+      row.push(ci);
+    }
+    grid.push(row);
+  }
+
+  currentPattern = { grid, palette, sw, sh };
+  renderPreview();
+  renderLegend();
+  pdfBtn.disabled  = false;
+  saveBtn.disabled = false;
+  generateBtn.disabled = false;
+  zoomBar.style.display = 'flex';
+  fitZoom();
+  statusEl.textContent = `${sw} × ${sh} stitches · ${palette.length} colors`;
+}
+
+// ===========================================================
+// PREVIEW RENDER
+// ===========================================================
+function renderPreview() {
+  const { grid, palette, sw, sh } = currentPattern;
+  const CELL = parseInt(zoomSlider.value);
+  const showSym = symbolCheck.checked && CELL >= 7;
+
+  canvas.width  = sw * CELL;
+  canvas.height = sh * CELL;
+
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const c = palette[grid[y][x]];
+      ctx.fillStyle = `rgb(${c.r},${c.g},${c.b})`;
+      ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+      if (showSym) {
+        const bright = 0.299*c.r + 0.587*c.g + 0.114*c.b;
+        ctx.fillStyle = bright > 140 ? '#000' : '#fff';
+        ctx.font = `bold ${Math.floor(CELL*0.7)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(c.symbol, x*CELL + CELL/2, y*CELL + CELL/2);
+      }
+    }
+  }
+
+  // Fine grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 0.4;
+  for (let x = 0; x <= sw; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,sh*CELL); ctx.stroke(); }
+  for (let y = 0; y <= sh; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(sw*CELL,y*CELL); ctx.stroke(); }
+  // Bold every-10 grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.9;
+  for (let x = 0; x <= sw; x+=10) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,sh*CELL); ctx.stroke(); }
+  for (let y = 0; y <= sh; y+=10) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(sw*CELL,y*CELL); ctx.stroke(); }
+}
+
+// ===========================================================
+// LEGEND
+// ===========================================================
+function renderLegend() {
+  const { palette } = currentPattern;
+  legendBody.innerHTML = '';
+  palette.forEach(c => {
+    const code = c.dmc ? c.dmc[0] : '—';
+    const name = c.dmc ? c.dmc[1] : `RGB(${c.r},${c.g},${c.b})`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="sym">${c.symbol}</td>
+      <td><span class="swatch" style="background:rgb(${c.r},${c.g},${c.b})"></span></td>
+      <td>DMC ${code}</td><td>${name}</td><td>${c.count.toLocaleString()}</td>`;
+    legendBody.appendChild(tr);
+  });
+  legendArea.style.display = 'flex';
+}
+
+// ===========================================================
+// PDF GENERATION
+// ===========================================================
+pdfBtn.addEventListener('click', makePDF);
+
+function makePDF() {
+  if (!currentPattern || !window.jspdf) return;
+  const { jsPDF } = window.jspdf;
+  const { grid, palette, sw, sh } = currentPattern;
+
+  const PW = 612, PH = 792, M = 40;
+  const DRAW_W = PW - 2*M, DRAW_H = PH - 2*M - 18; // 18pt bottom label
+  const CELL = 8; // fixed 8pt cell; ~11 cells per inch = fine for printing
+
+  const colsPP = Math.floor(DRAW_W / CELL);
+  const rowsPP = Math.floor(DRAW_H / CELL);
+  const totalPagesC = Math.ceil(sw / colsPP);
+  const totalPagesR = Math.ceil(sh / rowsPP);
+
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  let firstPage = true;
+
+  for (let pr = 0; pr < totalPagesR; pr++) {
+    for (let pc = 0; pc < totalPagesC; pc++) {
+      if (!firstPage) doc.addPage();
+      firstPage = false;
+
+      const x0 = pc * colsPP, y0 = pr * rowsPP;
+      const x1 = Math.min(x0 + colsPP, sw);
+      const y1 = Math.min(y0 + rowsPP, sh);
+
+      // Fill cells
+      for (let gy = y0; gy < y1; gy++) {
+        for (let gx = x0; gx < x1; gx++) {
+          const c = palette[grid[gy][gx]];
+          const px = M + (gx-x0)*CELL, py = M + (gy-y0)*CELL;
+          doc.setFillColor(c.r, c.g, c.b);
+          doc.rect(px, py, CELL, CELL, 'F');
+          // Symbol
+          const bright = 0.299*c.r + 0.587*c.g + 0.114*c.b;
+          doc.setTextColor(bright > 140 ? 0 : 255);
+          doc.setFontSize(5.5);
+          doc.text(c.symbol, px + CELL/2, py + CELL*0.74, { align: 'center' });
+        }
+      }
+
+      // Grid lines
+      const gW = (x1-x0)*CELL, gH = (y1-y0)*CELL;
+      for (let gx = x0; gx <= x1; gx++) {
+        const ten = gx % 10 === 0;
+        doc.setDrawColor(ten ? 60 : 190); doc.setLineWidth(ten ? 0.5 : 0.15);
+        const px = M + (gx-x0)*CELL;
+        doc.line(px, M, px, M+gH);
+      }
+      for (let gy = y0; gy <= y1; gy++) {
+        const ten = gy % 10 === 0;
+        doc.setDrawColor(ten ? 60 : 190); doc.setLineWidth(ten ? 0.5 : 0.15);
+        const py = M + (gy-y0)*CELL;
+        doc.line(M, py, M+gW, py);
+      }
+
+      // Axis numbers every 10
+      doc.setTextColor(80); doc.setFontSize(6);
+      for (let gx = x0; gx <= x1; gx += 10) {
+        const px = M + (gx-x0)*CELL;
+        doc.text(String(gx+1), px, M - 3, { align: 'center' });
+      }
+      for (let gy = y0; gy <= y1; gy += 10) {
+        const py = M + (gy-y0)*CELL;
+        doc.text(String(gy+1), M - 4, py + CELL/2 + 2, { align: 'right' });
+      }
+
+      // Page label
+      doc.setTextColor(130); doc.setFontSize(7);
+      doc.text(`Cols ${x0+1}–${x1}  ·  Rows ${y0+1}–${y1}`, M, PH - 14);
+      doc.text(`Page ${pr*totalPagesC + pc + 1} of ${totalPagesR*totalPagesC + 1}`, PW-M, PH-14, { align:'right' });
+    }
+  }
+
+  // Legend page
+  doc.addPage();
+  doc.setFontSize(14); doc.setTextColor(0);
+  doc.text('Color Legend', M, M + 10);
+  doc.setFontSize(9); doc.setTextColor(100);
+  doc.text(`${sw} × ${sh} stitches  ·  ${palette.length} colors`, M, M + 22);
+
+  let ly = M + 42;
+  const rh = 16, sw2 = 12;
+
+  // Table header
+  doc.setFontSize(8); doc.setTextColor(60);
+  ['Sym','Swatch','DMC #','Name','Stitches'].forEach((h, i) => {
+    doc.text(h, [M+2, M+28, M+60, M+110, M+360][i], ly);
+  });
+  ly += 3;
+  doc.setDrawColor(160); doc.setLineWidth(0.4);
+  doc.line(M, ly, PW-M, ly); ly += 10;
+
+  doc.setFontSize(8);
+  for (const c of palette) {
+    if (ly > PH - M - rh) { doc.addPage(); ly = M + 20; }
+    const code = c.dmc ? c.dmc[0] : '—';
+    const name = c.dmc ? c.dmc[1] : `RGB(${c.r},${c.g},${c.b})`;
+    doc.setTextColor(0);
+    doc.text(c.symbol, M+4, ly+9);
+    doc.setFillColor(c.r, c.g, c.b); doc.setDrawColor(120); doc.setLineWidth(0.3);
+    doc.rect(M+24, ly+1, sw2, sw2-1, 'FD');
+    doc.setTextColor(0);
+    doc.text(String(code), M+60, ly+9);
+    doc.text(name.substring(0,42), M+110, ly+9);
+    doc.text(c.count.toLocaleString(), M+360, ly+9);
+    ly += rh;
+  }
+
+  doc.save('ghoulstitch-pattern.pdf');
+  statusEl.textContent = 'PDF saved!';
+}
+
+// ===========================================================
+// ZOOM
+// ===========================================================
+const zoomBar    = document.getElementById('zoomBar');
+const zoomLabel  = document.getElementById('zoomLabel');
+const canvasWrap = document.getElementById('canvasWrap');
+const previewWrap = document.getElementById('previewWrap');
+let cssZoom = 1.0;
+
+function setZoom(z) {
+  cssZoom = Math.min(10, Math.max(0.05, z));
+  canvas.style.transform = `scale(${cssZoom})`;
+  canvas.style.transformOrigin = 'top left';
+  canvasWrap.style.width  = Math.round(canvas.width  * cssZoom) + 'px';
+  canvasWrap.style.height = Math.round(canvas.height * cssZoom) + 'px';
+  zoomLabel.textContent = Math.round(cssZoom * 100) + '%';
+}
+
+function fitZoom() {
+  if (!canvas.width || !canvas.height) return;
+  const availW = previewWrap.clientWidth  - 32;
+  const availH = previewWrap.clientHeight > 120 ? previewWrap.clientHeight - 32 : window.innerHeight * 0.6;
+  setZoom(Math.min(availW / canvas.width, availH / canvas.height, 1));
+}
+
+document.getElementById('zoomIn').addEventListener('click',  () => setZoom(cssZoom * 1.3));
+document.getElementById('zoomOut').addEventListener('click', () => setZoom(cssZoom / 1.3));
+document.getElementById('zoomFit').addEventListener('click', fitZoom);
+
+previewWrap.addEventListener('wheel', e => {
+  if (!currentPattern || !e.shiftKey) return;
+  e.preventDefault();
+  setZoom(cssZoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+}, { passive: false });
+
+// ===========================================================
+// RESET
+// ===========================================================
+const resetBtn = document.getElementById('resetBtn');
+resetBtn.addEventListener('click', () => {
+  currentPattern = null;
+  srcImage = null;
+
+  canvas.width = 0; canvas.height = 0;
+
+  document.getElementById('dzPreview').style.display = 'none';
+  document.getElementById('dzThumb').src = '';
+  document.getElementById('dzName').textContent = '';
+  document.getElementById('dzPrompt').style.display = '';
+  dropZone.classList.remove('loaded');
+
+  legendArea.style.display = 'none';
+  legendBody.innerHTML = '';
+
+  generateBtn.disabled = true;
+  pdfBtn.disabled      = true;
+  saveBtn.disabled     = true;
+
+  zoomBar.style.display = 'none';
+  cssZoom = 1.0;
+  canvas.style.transform = '';
+  canvasWrap.style.width  = '';
+  canvasWrap.style.height = '';
+
+  document.getElementById('placeholder').style.display = '';
+
+  widthSlider.value = 60;  widthVal.textContent  = 60;
+  colorSlider.value = 16;  colorVal.textContent  = 16;
+  zoomSlider.value  = 10;  zoomVal.textContent   = 10;
+
+  statusEl.textContent = '';
+});
+
+// ===========================================================
+// SAVE / LOAD PATTERN
+// ===========================================================
+const saveBtn  = document.getElementById('saveBtn');
+const loadBtn  = document.getElementById('loadBtn');
+const loadInput = document.getElementById('loadInput');
+
+saveBtn.addEventListener('click', () => {
+  if (!currentPattern) return;
+  const name = prompt('Name your pattern:', 'my-pattern');
+  if (name === null) return;
+  const filename = (name.trim() || 'ghoulstitch-pattern') + '.gstitch';
+  const json = JSON.stringify(currentPattern);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  statusEl.textContent = `Saved as "${filename}"`;
+});
+
+loadBtn.addEventListener('click', () => loadInput.click());
+
+loadInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const loaded = JSON.parse(ev.target.result);
+      if (!loaded.grid || !loaded.palette || !loaded.sw || !loaded.sh)
+        throw new Error('missing fields');
+      currentPattern = loaded;
+      renderPreview();
+      renderLegend();
+      pdfBtn.disabled  = false;
+      saveBtn.disabled = false;
+      document.getElementById('placeholder').style.display = 'none';
+      zoomBar.style.display = 'flex';
+      fitZoom();
+      statusEl.textContent = `Loaded: ${currentPattern.sw} × ${currentPattern.sh} stitches · ${currentPattern.palette.length} colors`;
+    } catch {
+      statusEl.textContent = 'Error: not a valid .gstitch file.';
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+</script>
+</body>
+</html>
