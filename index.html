@@ -935,7 +935,7 @@ function libWrite(arr) {
 
 saveBtn.addEventListener('click', () => {
   if (!currentPattern) return;
-  const name = prompt('Save pattern as:', 'My Pattern');
+  const name = prompt('What will you call it?', 'My Pattern');
   if (name === null) return;
   const label = name.trim() || 'GhoulStitch Pattern';
   const arr = libGet();
