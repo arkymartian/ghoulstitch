@@ -90,9 +90,49 @@ th,td{border:1px solid rgba(255,255,255,0.07);padding:5px 10px;text-align:left;c
 th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
 .swatch{width:22px;height:18px;border:1px solid rgba(255,255,255,0.25);display:inline-block;vertical-align:middle;border-radius:2px}
 .sym{font-family:monospace;font-size:1.05rem;font-weight:700;color:#f0d090}
+/* ===== LOGIN OVERLAY ===== */
+.login-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:linear-gradient(rgba(0,0,0,0.72),rgba(0,0,0,0.72)),url('underdark.jpg');background-size:cover;background-position:center;transition:opacity 0.65s ease}
+.login-overlay.fade-out{opacity:0;pointer-events:none}
+.login-panel{background:rgba(10,5,25,0.72);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(200,120,60,0.35);border-radius:18px;padding:44px 54px;display:flex;flex-direction:column;align-items:center;gap:22px;min-width:340px;max-width:92vw;box-shadow:0 8px 52px rgba(0,0,0,0.85)}
+.login-logo{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid rgba(200,120,60,0.5)}
+.login-title{font-size:1.9rem;font-weight:600;color:#f0c890}
+.login-riddle{font-family:'Cinzel Decorative',serif;font-size:1.05rem;color:rgba(220,200,255,0.85);text-align:center;letter-spacing:0.04em;line-height:1.6}
+.login-input{width:100%;padding:12px 16px;background:rgba(5,3,18,0.6);border:1px solid rgba(200,120,60,0.35);border-radius:8px;color:#e8e0f0;font-size:1rem;outline:none;text-align:center;transition:border-color 0.2s;letter-spacing:0.02em}
+.login-input:focus{border-color:rgba(200,120,60,0.85)}
+.login-input.shake{animation:loginShake 0.42s;border-color:rgba(255,80,80,0.75)!important}
+.login-btn{width:100%;padding:12px;font-size:1rem}
+.login-error{font-size:0.83rem;color:rgba(255,110,110,0.85);min-height:1.3em;text-align:center;font-style:italic}
+@keyframes loginShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(7px)}}
+/* ===== LIBRARY MODAL ===== */
+.lib-modal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.lib-panel{background:rgba(8,4,22,0.95);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(200,120,60,0.3);border-radius:14px;width:580px;max-width:96vw;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 8px 52px rgba(0,0,0,0.85)}
+.lib-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0}
+.lib-head h2{color:#f0c890;font-size:1.1rem;font-weight:600}
+.lib-close-btn{background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.25rem;cursor:pointer;padding:2px 8px;line-height:1;border-radius:4px;transition:color .15s}
+.lib-close-btn:hover{color:#fff}
+.lib-list{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:60px}
+.lib-card{background:rgba(18,9,40,0.55);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:border-color .15s}
+.lib-card:hover{border-color:rgba(200,120,60,0.3)}
+.lib-card-info{flex:1;min-width:0}
+.lib-card-name{font-weight:600;color:#e8d8f8;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-card-meta{font-size:0.75rem;color:rgba(180,165,210,0.5);margin-top:3px}
+.lib-card-btns{display:flex;gap:5px;flex-shrink:0}
+.lib-card-btns .btn{padding:5px 11px;font-size:0.78rem}
+.lib-empty{padding:36px 24px;text-align:center;color:rgba(180,165,210,0.45);font-size:0.9rem;line-height:1.7}
 </style>
 </head>
 <body>
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-panel">
+    <img src="ghoul.png" class="login-logo" alt="">
+    <div class="login-title">GhoulStitch<sup style="font-size:0.4em;vertical-align:super;opacity:0.6">™</sup></div>
+    <p class="login-riddle">What is the color of night?</p>
+    <input type="text" id="loginInput" class="login-input" placeholder="Speak, and enter…" autocomplete="off" spellcheck="false">
+    <button class="btn login-btn" id="loginBtn">Enter</button>
+    <p class="login-error" id="loginError">&nbsp;</p>
+  </div>
+</div>
 <header>
   <img src="ghoul.png" class="logo" alt="">
   <h1>GhoulStitch<sup style="font-size:0.45em;vertical-align:super;opacity:0.6;letter-spacing:0">™</sup></h1>
@@ -137,7 +177,8 @@ th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
     </div>
     <button class="btn" id="generateBtn" disabled>Generate Pattern</button>
     <button class="btn secondary" id="pdfBtn" disabled>Print PDF</button>
-    <button class="btn load" id="saveBtn" disabled>Save Pattern</button>
+    <button class="btn load" id="saveBtn" disabled>Save to Library</button>
+    <button class="btn load" id="libBtn">My Library</button>
     <button class="btn load" id="loadBtn">Load Pattern</button>
     <button class="btn reset" id="resetBtn">Reset</button>
     <input type="file" id="loadInput" accept=".gstitch">
@@ -166,6 +207,25 @@ th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
     <thead><tr><th>Sym</th><th>Swatch</th><th>DMC #</th><th>Name</th><th>Stitches</th></tr></thead>
     <tbody id="legendBody"></tbody>
   </table>
+</div>
+
+<!-- LIBRARY MODAL -->
+<div id="libModal" class="lib-modal" style="display:none">
+  <div class="lib-panel">
+    <div class="lib-head">
+      <h2>My Pattern Library</h2>
+      <button class="lib-close-btn" id="libClose">✕</button>
+    </div>
+    <div style="padding:10px 22px 0;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0">
+      <p style="font-size:0.76rem;color:rgba(180,165,210,0.45);padding-bottom:10px">
+        Patterns are saved in <strong style="color:rgba(200,185,225,0.6)">this browser only</strong>.
+        Use <strong style="color:rgba(200,185,225,0.6)">Export</strong> on any card to download a .gstitch file you can move between devices.
+      </p>
+    </div>
+    <div id="libList" class="lib-list">
+      <p id="libEmpty" class="lib-empty">No patterns saved yet.<br>Generate a pattern and click <strong>Save to Library</strong> to store it here.</p>
+    </div>
+  </div>
 </div>
 
 <footer>Made with help from Claude AI &nbsp;|&nbsp; House Hlaalu 2026</footer>
@@ -834,21 +894,96 @@ const saveBtn  = document.getElementById('saveBtn');
 const loadBtn  = document.getElementById('loadBtn');
 const loadInput = document.getElementById('loadInput');
 
+// ===========================================================
+// PATTERN LIBRARY (localStorage)
+// ===========================================================
+const LIB_KEY = 'ghoulstitch_library';
+
+function libGet() {
+  try { return JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); }
+  catch { return []; }
+}
+function libWrite(arr) {
+  try { localStorage.setItem(LIB_KEY, JSON.stringify(arr)); return true; }
+  catch { return false; }
+}
+
 saveBtn.addEventListener('click', () => {
   if (!currentPattern) return;
-  const name = prompt('Name your pattern:', 'my-pattern');
+  const name = prompt('Save pattern as:', 'My Pattern');
   if (name === null) return;
-  const filename = (name.trim() || 'ghoulstitch-pattern') + '.gstitch';
-  const json = JSON.stringify(currentPattern);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-  statusEl.textContent = `Saved as "${filename}"`;
+  const label = name.trim() || 'GhoulStitch Pattern';
+  const arr = libGet();
+  arr.unshift({ id: Date.now(), name: label, saved: new Date().toLocaleDateString(),
+    sw: currentPattern.sw, sh: currentPattern.sh, colors: currentPattern.palette.length,
+    data: currentPattern });
+  if (!libWrite(arr)) {
+    statusEl.textContent = 'Storage full — export a .gstitch file to free space.';
+    return;
+  }
+  statusEl.textContent = `Saved "${label}" to library.`;
 });
+
+const libBtn   = document.getElementById('libBtn');
+const libModal = document.getElementById('libModal');
+libBtn.addEventListener('click', () => { renderLibrary(); libModal.style.display = 'flex'; });
+document.getElementById('libClose').addEventListener('click', () => { libModal.style.display = 'none'; });
+libModal.addEventListener('click', e => { if (e.target === libModal) libModal.style.display = 'none'; });
+
+function renderLibrary() {
+  const list  = document.getElementById('libList');
+  const empty = document.getElementById('libEmpty');
+  list.querySelectorAll('.lib-card').forEach(c => c.remove());
+  const arr = libGet();
+  if (!arr.length) { empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  for (const p of arr) {
+    const card = document.createElement('div');
+    card.className = 'lib-card';
+    card.innerHTML = `
+      <div class="lib-card-info">
+        <div class="lib-card-name">${p.name}</div>
+        <div class="lib-card-meta">${p.sw} × ${p.sh} stitches · ${p.colors} colors · ${p.saved}</div>
+      </div>
+      <div class="lib-card-btns">
+        <button class="btn secondary lib-load" data-id="${p.id}">Load</button>
+        <button class="btn save lib-export" data-id="${p.id}" title="Download .gstitch">Export</button>
+        <button class="btn reset lib-del" data-id="${p.id}">Del</button>
+      </div>`;
+    list.appendChild(card);
+  }
+
+  list.querySelectorAll('.lib-load').forEach(btn => btn.addEventListener('click', () => {
+    const p = libGet().find(x => x.id === Number(btn.dataset.id));
+    if (!p) return;
+    currentPattern = p.data;
+    renderPreview(); renderLegend();
+    pdfBtn.disabled = false; saveBtn.disabled = false;
+    document.getElementById('placeholder').style.display = 'none';
+    zoomBar.style.display = 'flex'; fitZoom();
+    statusEl.textContent = `Loaded "${p.name}" — ${p.sw} × ${p.sh} stitches · ${p.colors} colors`;
+    libModal.style.display = 'none';
+  }));
+
+  list.querySelectorAll('.lib-export').forEach(btn => btn.addEventListener('click', () => {
+    const p = libGet().find(x => x.id === Number(btn.dataset.id));
+    if (!p) return;
+    const blob = new Blob([JSON.stringify(p.data)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = p.name.replace(/[^a-z0-9]/gi, '_') + '.gstitch';
+    a.click(); URL.revokeObjectURL(url);
+  }));
+
+  list.querySelectorAll('.lib-del').forEach(btn => btn.addEventListener('click', () => {
+    const id = Number(btn.dataset.id);
+    const p  = libGet().find(x => x.id === id);
+    if (!p || !confirm(`Delete "${p.name}"?`)) return;
+    libWrite(libGet().filter(x => x.id !== id));
+    renderLibrary();
+  }));
+}
 
 loadBtn.addEventListener('click', () => loadInput.click());
 
@@ -877,6 +1012,37 @@ loadInput.addEventListener('change', e => {
   reader.readAsText(file);
   e.target.value = '';
 });
+
+// ===========================================================
+// LOGIN
+// ===========================================================
+(function() {
+  const PASS    = 'Sanguine, my brother.';
+  const overlay = document.getElementById('loginOverlay');
+  if (sessionStorage.getItem('gs_unlocked') === 'yes') { overlay.remove(); return; }
+
+  const input = document.getElementById('loginInput');
+  const errEl = document.getElementById('loginError');
+
+  function attempt() {
+    if (input.value === PASS) {
+      sessionStorage.setItem('gs_unlocked', 'yes');
+      overlay.classList.add('fade-out');
+      setTimeout(() => overlay.remove(), 700);
+    } else {
+      input.classList.remove('shake');
+      void input.offsetWidth;
+      input.classList.add('shake');
+      errEl.textContent = '"…That is not the answer."';
+      input.value = '';
+      setTimeout(() => input.classList.remove('shake'), 450);
+    }
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', attempt);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
+  setTimeout(() => input.focus(), 120);
+})();
 </script>
 </body>
 </html>
