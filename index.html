@@ -566,6 +566,15 @@ const statusEl    = document.getElementById('status');
 const legendArea  = document.getElementById('legendArea');
 const legendBody  = document.getElementById('legendBody');
 
+function setGenControls(enabled) {
+  [widthSlider, colorSlider].forEach(s => {
+    s.disabled = !enabled;
+    s.closest('.ctrl').style.opacity = enabled ? '' : '0.38';
+  });
+  dmcCheck.disabled = !enabled;
+  dmcCheck.closest('.ctrl-row').style.opacity = enabled ? '' : '0.38';
+}
+
 widthSlider.addEventListener('input', () => widthVal.textContent = widthSlider.value);
 colorSlider.addEventListener('input', () => colorVal.textContent = colorSlider.value);
 zoomSlider.addEventListener('input', () => {
@@ -596,6 +605,7 @@ function loadFile(file) {
       document.getElementById('dzPreview').style.display = 'flex';
       dropZone.classList.add('loaded');
       generateBtn.disabled = false;
+      setGenControls(true);
       document.getElementById('placeholder').style.display = 'none';
       statusEl.textContent = 'Image loaded — click Generate Pattern.';
     };
@@ -898,6 +908,7 @@ resetBtn.addEventListener('click', () => {
   colorSlider.value = 16;  colorVal.textContent  = 16;
   zoomSlider.value  = 10;  zoomVal.textContent   = 10;
 
+  setGenControls(true);
   statusEl.textContent = '';
 });
 
@@ -974,6 +985,7 @@ function renderLibrary() {
     currentPattern = p.data;
     renderPreview(); renderLegend();
     pdfBtn.disabled = false; saveBtn.disabled = false;
+    setGenControls(false);
     document.getElementById('placeholder').style.display = 'none';
     zoomBar.style.display = 'flex'; fitZoom();
     statusEl.textContent = `Loaded "${p.name}" — ${p.sw} × ${p.sh} stitches · ${p.colors} colors`;
@@ -1015,6 +1027,7 @@ loadInput.addEventListener('change', e => {
       renderLegend();
       pdfBtn.disabled  = false;
       saveBtn.disabled = false;
+      setGenControls(false);
       document.getElementById('placeholder').style.display = 'none';
       zoomBar.style.display = 'flex';
       fitZoom();
