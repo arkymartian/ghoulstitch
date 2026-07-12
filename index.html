@@ -19,8 +19,12 @@ body{
 header{
   background:rgba(20,7,3,0.45);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;
-  border-bottom:1px solid rgba(200,120,60,0.25);
+  border-bottom:1px solid rgba(200,120,60,0.25);justify-content:space-between;
 }
+.header-left{display:flex;align-items:center;gap:12px}
+.header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.hdr-btn{background:rgba(15,8,35,0.55);border:1px solid rgba(200,120,60,0.22);color:rgba(200,185,220,0.65);padding:5px 13px;border-radius:6px;font-size:0.74rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;font-family:inherit}
+.hdr-btn:hover{background:rgba(35,18,60,0.80);border-color:rgba(200,120,60,0.5);color:#e0d0f8}
 .logo{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(200,120,60,0.5);flex-shrink:0}
 header h1{font-size:1.3rem;font-weight:600;color:#f0c890}
 header span{font-size:0.85rem;opacity:0.6}
@@ -133,6 +137,12 @@ th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
 .lib-card-btns{display:flex;gap:5px;flex-shrink:0}
 .lib-card-btns .btn{padding:5px 11px;font-size:0.78rem}
 .lib-empty{padding:36px 24px;text-align:center;color:rgba(180,165,210,0.45);font-size:0.9rem;line-height:1.7}
+/* ===== CHANGELOG MODAL ===== */
+.cl-entry{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.cl-entry:last-child{border-bottom:none}
+.cl-msg{color:#e8d8f8;font-size:0.9rem;line-height:1.4}
+.cl-date{font-size:0.74rem;color:rgba(180,165,210,0.5);margin-top:3px}
+.cl-loading{padding:36px;text-align:center;color:rgba(180,165,210,0.5);font-size:0.88rem}
 </style>
 </head>
 <body>
@@ -148,9 +158,15 @@ th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
   </div>
 </div>
 <header>
-  <img src="ghoul.png" class="logo" alt="">
-  <h1>GhoulStitch<sup style="font-size:0.45em;vertical-align:super;opacity:0.6;letter-spacing:0">™</sup></h1>
-  <span>Upload an image → adjust settings → generate → print</span>
+  <div class="header-left">
+    <img src="ghoul.png" class="logo" alt="">
+    <h1>GhoulStitch<sup style="font-size:0.45em;vertical-align:super;opacity:0.6;letter-spacing:0">™</sup></h1>
+    <span>Upload an image → adjust settings → generate → print</span>
+  </div>
+  <div class="header-actions">
+    <a href="https://github.com/arkymartian/ghoulstitch/issues/new" target="_blank" class="hdr-btn">🐛 Bug Report</a>
+    <button class="hdr-btn" id="changelogBtn">📜 What's New</button>
+  </div>
 </header>
 
 <div class="drop-zone" id="dropZone">
@@ -221,6 +237,19 @@ th{background:rgba(35,15,60,0.55);font-weight:600;color:#c8a8e8}
     <thead><tr><th>Sym</th><th>Swatch</th><th>DMC #</th><th>Name</th><th>Stitches</th></tr></thead>
     <tbody id="legendBody"></tbody>
   </table>
+</div>
+
+<!-- CHANGELOG MODAL -->
+<div id="changelogModal" class="lib-modal" style="display:none">
+  <div class="lib-panel">
+    <div class="lib-head">
+      <h2>📜 What's New</h2>
+      <button class="lib-close-btn" id="changelogClose">✕</button>
+    </div>
+    <div id="changelogList" class="lib-list">
+      <p class="cl-loading">Loading…</p>
+    </div>
+  </div>
 </div>
 
 <!-- LIBRARY MODAL -->
@@ -1045,15 +1074,16 @@ loadInput.addEventListener('change', e => {
 // ===========================================================
 (function() {
   const PASS    = 'Sanguine, my brother.';
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
   const overlay = document.getElementById('loginOverlay');
-  if (sessionStorage.getItem('gs_unlocked') === 'yes') { overlay.remove(); return; }
+  if (Number(localStorage.getItem('gs_unlocked') || 0) > Date.now()) { overlay.remove(); return; }
 
   const input = document.getElementById('loginInput');
   const errEl = document.getElementById('loginError');
 
   function attempt() {
     if (input.value === PASS) {
-      sessionStorage.setItem('gs_unlocked', 'yes');
+      localStorage.setItem('gs_unlocked', String(Date.now() + THIRTY_DAYS));
       overlay.classList.add('fade-out');
       setTimeout(() => overlay.remove(), 700);
     } else {
@@ -1069,6 +1099,37 @@ loadInput.addEventListener('change', e => {
   document.getElementById('loginBtn').addEventListener('click', attempt);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
   setTimeout(() => input.focus(), 120);
+})();
+
+// ===========================================================
+// CHANGELOG
+// ===========================================================
+(function() {
+  const modal = document.getElementById('changelogModal');
+  const list  = document.getElementById('changelogList');
+  let loaded  = false;
+
+  document.getElementById('changelogBtn').addEventListener('click', () => {
+    modal.style.display = 'flex';
+    if (loaded) return;
+    fetch('https://api.github.com/repos/arkymartian/ghoulstitch/commits?per_page=30')
+      .then(r => r.json())
+      .then(commits => {
+        loaded = true;
+        list.innerHTML = '';
+        for (const c of commits) {
+          const date = new Date(c.commit.author.date).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+          const el = document.createElement('div');
+          el.className = 'cl-entry';
+          el.innerHTML = `<div class="cl-msg">${c.commit.message.split('\n')[0]}</div><div class="cl-date">${date}</div>`;
+          list.appendChild(el);
+        }
+      })
+      .catch(() => { list.innerHTML = '<p class="cl-loading">Could not load changelog — check your connection.</p>'; });
+  });
+
+  document.getElementById('changelogClose').addEventListener('click', () => { modal.style.display = 'none'; });
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
 })();
 
 // ===========================================================
